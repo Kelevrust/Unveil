@@ -98,8 +98,9 @@ CI runs all of these plus the Mozilla linter on every push and pull request.
 
 1. Bump `version` in both `firefox/manifest.json` and `chromium/manifest.json`
 2. `node build.mjs` (this also regenerates `updates.json`, which Firefox polls for updates)
-3. Commit, then tag and push: `git tag v0.3.0`, `git push origin main v0.3.0`
+3. Commit and push to `main`
+4. Either push a tag (`git tag v0.3.0`, `git push origin v0.3.0`), or on GitHub open **Releases**, **Draft a new release**, type `v0.3.0` as a new tag on `main`, and publish
 
-The tag runs the tests, signs the Firefox build if AMO keys are set, and publishes a GitHub release with both files. The tag has to match the manifest version or the release stops.
+Either way the workflow runs the tests, signs the Firefox build if AMO keys are set, and attaches both files to the release a few minutes later. The tag has to match the manifest version or the release stops.
 
 **Firefox signing, once:** generate a JWT issuer and secret at [AMO Developer Hub, Manage API Keys](https://addons.mozilla.org/developers/addon/api/key/) and add them as repository secrets `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`. Signing is unlisted, so there is no public AMO page. Without the secrets, releases carry the unsigned build. Mozilla has removed paywall bypass add-ons before and may refuse to sign this one; the Developer Edition route above still works if so.

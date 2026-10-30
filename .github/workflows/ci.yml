@@ -5,6 +5,16 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  # Publishing a release on GitHub (with a new tag) also builds and attaches
+  # the files, so a release can be cut without pushing a tag from git.
+  release:
+    types: [published]
+
+# A release made on GitHub can fire both the tag push and the release event.
+# Run them one after the other so the second only refreshes the files.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -68,6 +78,9 @@ jobs:
           cp dist/signed/*.xpi "dist/unveil-firefox-$VERSION.xpi"
       - name: Publish GitHub release
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            "dist/unveil-chromium-$VERSION.zip" "dist/unveil-firefox-$VERSION.xpi" \
-            --title "Unveil $VERSION" --generate-notes
+          FILES="dist/unveil-chromium-$VERSION.zip dist/unveil-firefox-$VERSION.xpi"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" $FILES --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" $FILES --title "Unveil $VERSION" --generate-notes
+          fi
