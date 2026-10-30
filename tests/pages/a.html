@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+body { margin: 0; font: 16px serif; }
+body.tp-modal-open { overflow: hidden; }
+header { position: sticky; top: 0; height: 60px; background: #eee; z-index: 10; }
+.article-body { position: relative; max-height: 400px; overflow: hidden; padding: 20px; }
+.fade { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; background: linear-gradient(transparent, white); }
+.blurred { filter: blur(4px); }
+.tp-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; }
+.tp-modal { position: fixed; top: 20%; left: 20%; width: 60%; height: 50%; background: #fff; z-index: 1001; }
+</style></head>
+<body class="tp-modal-open">
+<header id="hdr">Site Name <button>Subscribe</button> <a href="#">Sign in</a></header>
+<article>
+  <div class="article-body" id="body">
+    <p>Paragraph one of the story with enough words to take up some space on the page.</p>
+    <p>Paragraph two of the story with enough words to take up some space on the page.</p>
+    <p class="blurred" id="blur">Paragraph three is blurred until you pay, which is a common trick.</p>
+    <p>Paragraph four of the story with enough words to take up some space on the page.</p>
+    <p>Paragraph five of the story with enough words to take up some space on the page.</p>
+    <p>Paragraph six of the story with enough words to take up some space on the page.</p>
+    <p>Paragraph seven of the story with enough words to take up some space on the page.</p>
+    <p>Paragraph eight of the story with enough words to take up some space on the page.</p>
+    <p>Paragraph nine of the story with enough words to take up some space on the page.</p>
+    <p>Paragraph ten of the story with enough words to take up some space on the page.</p>
+    <div class="fade" id="fade"></div>
+  </div>
+</article>
+<div style="height:1500px"></div>
+<div class="tp-backdrop" id="tpb"></div>
+<div class="tp-modal" id="tpm"><iframe src="about:blank"></iframe></div>
+</body></html>

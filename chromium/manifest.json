@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Unveil",
+  "version": "0.2.0",
+  "description": "Hides paywall overlays, restores scrolling and clipped article text, and blocks known paywall vendor scripts.",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/unveil-16.png",
+    "32": "icons/unveil-32.png",
+    "48": "icons/unveil-48.png",
+    "128": "icons/unveil-128.png"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "vendors",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["compat.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Unveil",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/unveil-16.png",
+      "32": "icons/unveil-32.png"
+    }
+  }
+}

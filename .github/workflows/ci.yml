@@ -1,0 +1,73 @@
+name: test and release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Playwright Chromium
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Build
+        run: node build.mjs
+      - name: updates.json is committed and current
+        run: git diff --exit-code updates.json
+      - name: Firefox background logic
+        run: node tests/firefox_background.mjs
+      - name: Content script on fake paywall pages
+        run: python tests/run_tests.py
+      - name: Chromium extension end to end
+        run: python tests/chromium_e2e.py
+      - name: Mozilla add-on lint
+        run: npx --yes addons-linter --self-hosted dist/unveil-firefox-*.xpi
+
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+      AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build
+        run: node build.mjs
+      - name: Tag matches manifest version
+        run: |
+          VERSION=$(node -p "require('./chromium/manifest.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          test "v$VERSION" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME does not match manifest $VERSION"; exit 1; }
+      # Unlisted signing returns a signed .xpi without creating a public AMO
+      # listing. Skipped when the AMO secrets are not set, and the release then
+      # carries the unsigned build.
+      - name: Sign Firefox build
+        if: env.AMO_JWT_ISSUER != ''
+        run: |
+          npx --yes web-ext sign --channel unlisted \
+            --source-dir dist/firefox --artifacts-dir dist/signed \
+            --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
+          cp dist/signed/*.xpi "dist/unveil-firefox-$VERSION.xpi"
+      - name: Publish GitHub release
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/unveil-chromium-$VERSION.zip" "dist/unveil-firefox-$VERSION.xpi" \
+            --title "Unveil $VERSION" --generate-notes

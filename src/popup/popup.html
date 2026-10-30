@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/unveil.svg" alt="" width="20" height="20">
+    <h1>Unveil</h1>
+  </header>
+  <p id="site" class="site"></p>
+  <label class="toggle">
+    <input type="checkbox" id="enabled" checked>
+    <span>Active on this site</span>
+  </label>
+  <dl class="stats">
+    <div><dt>Overlays hidden</dt><dd id="removed">0</dd></div>
+    <div><dt>Paywall requests blocked</dt><dd id="blocked">0</dd></div>
+  </dl>
+  <p id="hint" class="hint">Turn it off on sites you subscribe to so your login works.</p>
+  <script src="../compat.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

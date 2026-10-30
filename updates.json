@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "{f9e4d419-f4df-435f-bc23-2466c032e5d1}": {
+      "updates": [
+        {
+          "version": "0.2.0",
+          "update_link": "https://github.com/Kelevrust/Unveil/releases/download/v0.2.0/unveil-firefox-0.2.0.xpi"
+        }
+      ]
+    }
+  }
+}

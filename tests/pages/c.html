@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+body { margin: 0; font: 16px serif; }
+.modal { position: fixed; top: 20%; left: 20%; width: 60%; height: 50%; background: #fff; z-index: 100; border: 1px solid #000; }
+</style></head>
+<body>
+<article>
+  <h1>Headline</h1>
+  <div class="paywall-content" id="pwcontent">
+    <p>One.</p><p>Two.</p><p>Three.</p><p>Four.</p><p>Five.</p><p>Six.</p><p>Seven.</p><p>Eight.</p>
+  </div>
+  <div class="paywall-prompt" id="pwprompt">Subscribe to continue reading. <a href="#">Sign in</a></div>
+</article>
+<button id="login">Sign in</button>
+<script>
+  document.getElementById("login").addEventListener("click", () => {
+    const m = document.createElement("div");
+    m.className = "modal"; m.id = "loginmodal";
+    m.innerHTML = '<h2>Sign in to continue</h2><input type="email"><input type="password"><button>Log in</button><p>Not a subscriber? Subscribe now.</p>';
+    document.body.appendChild(m);
+  });
+  window.addLatePaywall = () => {
+    const m = document.createElement("div");
+    m.className = "modal"; m.id = "latewall"; m.style.zIndex = 200;
+    m.innerHTML = '<h2>This story is for subscribers only</h2><button>Subscribe</button>';
+    document.body.appendChild(m);
+  };
+</script>
+</body></html>

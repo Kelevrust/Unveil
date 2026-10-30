@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "requestDomains": [
+        "tinypass.com",
+        "piano.io",
+        "poool.fr",
+        "pelcro.com",
+        "zephr.com",
+        "laterpay.net"
+      ],
+      "resourceTypes": ["script", "xmlhttprequest", "sub_frame"]
+    }
+  }
+]
