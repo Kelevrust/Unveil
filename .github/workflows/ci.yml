@@ -67,18 +67,26 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           test "v$VERSION" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME does not match manifest $VERSION"; exit 1; }
       # Unlisted signing returns a signed .xpi without creating a public AMO
-      # listing. Skipped when the AMO secrets are not set, and the release then
-      # carries the unsigned build.
+      # listing. If the AMO secrets are missing, or Mozilla refuses to sign,
+      # the release still goes out: the Firefox file is renamed -unsigned and
+      # the run carries a warning, so the Chrome build is never held back.
       - name: Sign Firefox build
+        id: sign
         if: env.AMO_JWT_ISSUER != ''
+        continue-on-error: true
         run: |
           npx --yes web-ext sign --channel unlisted \
             --source-dir dist/firefox --artifacts-dir dist/signed \
             --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
           cp dist/signed/*.xpi "dist/unveil-firefox-$VERSION.xpi"
+      - name: Label an unsigned Firefox build
+        if: steps.sign.outcome != 'success'
+        run: |
+          mv "dist/unveil-firefox-$VERSION.xpi" "dist/unveil-firefox-$VERSION-unsigned.xpi"
+          echo "::warning title=Firefox build is unsigned::Signing was skipped or refused (outcome: ${{ steps.sign.outcome }}). The .xpi installs only as a temporary add-on or in Firefox Developer Edition."
       - name: Publish GitHub release
         run: |
-          FILES="dist/unveil-chromium-$VERSION.zip dist/unveil-firefox-$VERSION.xpi"
+          FILES="dist/unveil-chromium-$VERSION.zip $(ls dist/unveil-firefox-$VERSION*.xpi)"
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" $FILES --clobber
           else
