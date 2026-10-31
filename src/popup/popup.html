@@ -12,13 +12,25 @@
   <p id="site" class="site"></p>
   <label class="toggle">
     <input type="checkbox" id="enabled" checked>
-    <span>Active on this site</span>
+    <span>Paywall cleanup on this site</span>
   </label>
   <dl class="stats">
     <div><dt>Overlays hidden</dt><dd id="removed">0</dd></div>
     <div><dt>Paywall requests blocked</dt><dd id="blocked">0</dd></div>
+    <div><dt>Cookie banners declined</dt><dd id="banners">0</dd></div>
   </dl>
-  <p id="hint" class="hint">Turn it off on sites you subscribe to so your login works.</p>
+  <p id="hint" class="hint">Turn paywall cleanup off on sites you subscribe to so your login works.</p>
+
+  <h2 class="section">Privacy, on every site</h2>
+  <label class="toggle">
+    <input type="checkbox" id="consentEnabled" checked>
+    <span>Decline cookie banners (necessary only)</span>
+  </label>
+  <label class="toggle">
+    <input type="checkbox" id="gpcEnabled" checked>
+    <span>Send Global Privacy Control</span>
+  </label>
+  <p id="privacyHint" class="hint">Changes apply from the next page load.</p>
   <script src="../compat.js"></script>
   <script src="popup.js"></script>
 </body>

@@ -31,6 +31,8 @@ jobs:
         run: |
           pip install playwright
           python -m playwright install --with-deps chromium
+      - name: Install build dependencies
+        run: npm ci
       - name: Build
         run: node build.mjs
       - name: updates.json is committed and current
@@ -59,6 +61,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install build dependencies
+        run: npm ci
       - name: Build
         run: node build.mjs
       - name: Tag matches manifest version
@@ -67,7 +71,9 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           test "v$VERSION" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME does not match manifest $VERSION"; exit 1; }
       # Unlisted signing returns a signed .xpi without creating a public AMO
-      # listing. If the AMO secrets are missing, or Mozilla refuses to sign,
+      # listing. The bundled cookie banner code means AMO wants the readable
+      # source too, so the repo at this tag goes up with it for reviewers.
+      # If the AMO secrets are missing, or Mozilla refuses to sign,
       # the release still goes out: the Firefox file is renamed -unsigned and
       # the run carries a warning, so the Chrome build is never held back.
       - name: Sign Firefox build
@@ -75,8 +81,10 @@ jobs:
         if: env.AMO_JWT_ISSUER != ''
         continue-on-error: true
         run: |
+          git archive --format=zip -o dist/unveil-source.zip HEAD
           npx --yes web-ext sign --channel unlisted \
             --source-dir dist/firefox --artifacts-dir dist/signed \
+            --upload-source-code dist/unveil-source.zip \
             --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
           cp dist/signed/*.xpi "dist/unveil-firefox-$VERSION.xpi"
       - name: Label an unsigned Firefox build

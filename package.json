@@ -1,0 +1,12 @@
+{
+  "name": "unveil",
+  "private": true,
+  "description": "Build tooling for the Unveil browser extension",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@duckduckgo/autoconsent": "17.2.0",
+    "esbuild": "0.28.2"
+  }
+}

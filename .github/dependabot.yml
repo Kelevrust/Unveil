@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Weekly bump of the pinned cookie banner rules (and esbuild). CI runs the
+  # full test suite on each pull request before it can be merged.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2

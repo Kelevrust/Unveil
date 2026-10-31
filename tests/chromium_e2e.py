@@ -9,9 +9,18 @@ EXT = (HERE.parent / "dist" / "chromium").resolve()
 if not (EXT / "manifest.json").exists():
     raise SystemExit("dist/chromium missing: run `node build.mjs` first")
 
-handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(HERE / "pages"))
-http.server.SimpleHTTPRequestHandler.log_message = lambda *a: None
-server = socketserver.TCPServer(("127.0.0.1", 0), handler)
+# Remembers the Sec-GPC header each page request arrived with.
+GPC_SEEN = {}
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+    def do_GET(self):
+        GPC_SEEN[self.path.split("?")[0]] = self.headers.get("Sec-GPC")
+        super().do_GET()
+
+handler = functools.partial(Handler, directory=str(HERE / "pages"))
+server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), handler)
+server.daemon_threads = True
 PORT = server.server_address[1]
 threading.Thread(target=server.serve_forever, daemon=True).start()
 BASE = f"http://localhost:{PORT}"
@@ -41,6 +50,35 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
     sw = ctx.service_workers[0] if ctx.service_workers else ctx.wait_for_event("serviceworker")
     ext_id = sw.url.split("/")[2]
     check("service worker started", ext_id)
+    ctx.pages[0].wait_for_timeout(1000)  # let onInstalled register the GPC script
+
+    def choice_on(page_name, wait=4000):
+        page = ctx.new_page()
+        page.goto(f"{BASE}/{page_name}")
+        page.wait_for_timeout(wait)
+        return page, page.evaluate("document.body.dataset.choice || ''")
+
+    loads = iter(range(1, 1000))
+    def gpc_state():
+        """Fresh, uncached load of gpc.html: (Sec-GPC header, what the page saw)."""
+        page = ctx.new_page()
+        GPC_SEEN.pop("/gpc.html", None)
+        page.goto(f"{BASE}/gpc.html?load={next(loads)}")
+        page.wait_for_timeout(500)
+        state = (GPC_SEEN.get("/gpc.html", "never requested"), page.evaluate("document.body.dataset.gpc"))
+        page.close()
+        return state
+
+    # Cookie banners: the reject / necessary only path is taken.
+    cy, choice = choice_on("consent-cookieyes.html")
+    check(f"CookieYes banner: reject clicked ({choice!r})", choice == "reject")
+    osano, choice = choice_on("consent-osano.html")
+    check(f"Osano banner, needs an in-page check: deny clicked ({choice!r})", choice == "deny")
+
+    # Global Privacy Control: header on the request and the page sees it.
+    header, nav = gpc_state()
+    check(f"GPC header sent ({header!r})", header == "1")
+    check(f"GPC visible to page scripts ({nav!r})", nav == "true")
 
     # Content script runs on a real page.
     a = ctx.new_page()
@@ -66,6 +104,8 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
     check(f"popup blocked count for vendor page ({blocked})", blocked >= 2)
     stats = ui.evaluate("id => api.tabs.sendMessage(id, {type: 'getStats'})", tab_id("a.html"))
     check(f"popup overlay count for page A ({stats['removed']})", stats["removed"] >= 2)
+    banners = ui.evaluate("id => api.runtime.sendMessage({type: 'getBanners', tabId: id})", tab_id("consent-cookieyes.html"))
+    check(f"popup cookie banner count ({banners})", banners == 1)
 
     # Switch the site off: vendor requests flow and the content script stays out.
     ui.evaluate("api.runtime.sendMessage({type: 'setSite', site: 'localhost', enabled: false})")
@@ -76,6 +116,8 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
     a.reload()
     a.wait_for_timeout(1500)
     check("site off: Piano modal left alone", shown(a, "#tpm"))
+    header, _ = gpc_state()
+    check(f"site off: GPC header still sent ({header!r})", header == "1")
 
     # And back on.
     ui.evaluate("api.runtime.sendMessage({type: 'setSite', site: 'localhost', enabled: true})")
@@ -83,6 +125,19 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
     v, fails = vendor_failures(ctx)
     tp = [u for u in fails if "tinypass.com" in u]
     check("site back on: tinypass blocked again", tp and fails[tp[0]] == "net::ERR_BLOCKED_BY_CLIENT")
+
+    # Privacy switches in the popup.
+    ui.evaluate("api.runtime.sendMessage({type: 'setOption', key: 'consentEnabled', value: false})")
+    _, choice = choice_on("consent-cookieyes.html")
+    check(f"banners off: CookieYes left alone ({choice!r})", choice == "")
+    ui.evaluate("api.runtime.sendMessage({type: 'setOption', key: 'consentEnabled', value: true})")
+
+    ui.evaluate("api.runtime.sendMessage({type: 'setOption', key: 'gpcEnabled', value: false})")
+    header, nav = gpc_state()
+    check(f"GPC off: no header, nothing for page scripts ({header!r}, {nav!r})", header is None and nav == "undefined")
+    ui.evaluate("api.runtime.sendMessage({type: 'setOption', key: 'gpcEnabled', value: true})")
+    header, nav = gpc_state()
+    check(f"GPC back on ({header!r}, {nav!r})", header == "1" and nav == "true")
 
     ctx.close()
 

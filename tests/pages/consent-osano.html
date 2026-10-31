@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Osano style banner</title>
+<script>
+  // Osano's real script exposes this. The extension can only see it by
+  // running a snippet in the page itself, which is what this page tests.
+  window.Osano = { cm: { dialogOpen: true } };
+</script>
+</head>
+<body>
+<h1>Article</h1>
+<p>Text under an Osano style consent dialog.</p>
+<div class="osano-cm-window">
+  <div class="osano-cm-dialog" id="dialog" style="position:fixed;left:0;right:0;bottom:0;background:#fff;padding:16px">
+    <p>This website uses cookies.</p>
+    <button class="osano-cm-accept-all" onclick="choose('accept')">Accept</button>
+    <button class="osano-cm-denyAll" onclick="choose('deny')">Deny</button>
+  </div>
+</div>
+<script>
+  function choose(c) {
+    document.body.dataset.choice = c;
+    window.Osano.cm.dialogOpen = false;
+    document.getElementById("dialog").classList.add("osano-cm-dialog--hidden");
+  }
+</script>
+</body></html>

@@ -1,11 +1,14 @@
-// Builds both browsers from one source tree. No dependencies.
+// Builds both browsers from one source tree.
 //
+//   npm ci          (once: installs the pinned autoconsent rules and esbuild)
 //   node build.mjs
 //
 // Writes dist/firefox and dist/chromium (load these unpacked) plus
 // dist/unveil-firefox-<version>.xpi and dist/unveil-chromium-<version>.zip.
 // Refuses to run when the two manifests disagree on version, or when the
 // vendor host lists in the two backgrounds and the content script drift apart.
+// Cookie banner handling bundles DuckDuckGo's autoconsent (MPL-2.0) with
+// esbuild; its license travels inside both packages.
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, readdirSync, statSync } from "node:fs";
 import { join, dirname, relative, sep } from "node:path";
@@ -22,7 +25,7 @@ const TARGETS = {
     pkg: (v) => `unveil-firefox-${v}.xpi`
   },
   chromium: {
-    files: ["manifest.json", "background.js", "rules.json"],
+    files: ["manifest.json", "background.js", "rules.json", "gpc-rules.json"],
     icons: ["unveil.svg", "unveil-16.png", "unveil-32.png", "unveil-48.png", "unveil-128.png"],
     pkg: (v) => `unveil-chromium-${v}.zip`
   }
@@ -153,17 +156,55 @@ function zipDir(dir, outFile) {
   writeFileSync(outFile, Buffer.concat([...locals, cd, end]));
 }
 
-// ---------- build ----------
+// ---------- cookie banner bundles ----------
+
+const AC_DIR = join(ROOT, "node_modules", "@duckduckgo", "autoconsent");
+let esbuild;
+try {
+  esbuild = await import("esbuild");
+  statSync(join(AC_DIR, "package.json"));
+} catch {
+  fail("build dependencies are missing. Run `npm ci` first.");
+}
+const acVersion = JSON.parse(readFileSync(join(AC_DIR, "package.json"), "utf8")).version;
+const NOTICE = `/*
+ * Unveil cookie banner handling. Bundles @duckduckgo/autoconsent ${acVersion},
+ * licensed under the Mozilla Public License 2.0 (licenses/autoconsent-MPL-2.0.txt).
+ * Source: https://github.com/duckduckgo/autoconsent and
+ * https://www.npmjs.com/package/@duckduckgo/autoconsent/v/${acVersion}
+ */`;
 
 rmSync(DIST, { recursive: true, force: true });
+const BUNDLES = join(DIST, ".bundles");
+for (const [entry, outfile] of [["content.mjs", "consent-content.js"], ["background-entry.mjs", "consent-bg.js"]]) {
+  await esbuild.build({
+    entryPoints: [join(ROOT, "src", "consent", entry)],
+    outfile: join(BUNDLES, outfile),
+    bundle: true,
+    format: "iife",
+    target: ["firefox115", "chrome111"],
+    banner: { js: NOTICE },
+    legalComments: "inline",
+    logLevel: "warning"
+  });
+}
+
+// ---------- build ----------
 
 for (const [target, spec] of Object.entries(TARGETS)) {
   const out = join(DIST, target);
   mkdirSync(join(out, "icons"), { recursive: true });
-  cpSync(join(ROOT, "src"), out, { recursive: true });
+  mkdirSync(join(out, "licenses"), { recursive: true });
+  // src/consent is bundle source; only its built output ships.
+  cpSync(join(ROOT, "src"), out, { recursive: true, filter: (p) => !p.startsWith(join(ROOT, "src", "consent")) });
+  for (const f of ["consent-content.js", "consent-bg.js"]) cpSync(join(BUNDLES, f), join(out, f));
+  cpSync(join(AC_DIR, "rules", "compact-rules.json"), join(out, "compact-rules.json"));
+  cpSync(join(AC_DIR, "LICENSE"), join(out, "licenses", "autoconsent-MPL-2.0.txt"));
   for (const f of spec.files) cpSync(join(ROOT, target, f), join(out, f));
   for (const i of spec.icons) cpSync(join(ROOT, "icons", i), join(out, "icons", i));
   const pkg = join(DIST, spec.pkg(version));
   zipDir(out, pkg);
   console.log(`${target}: dist/${target}/  ->  dist/${spec.pkg(version)}`);
 }
+
+rmSync(BUNDLES, { recursive: true, force: true });

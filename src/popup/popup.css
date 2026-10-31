@@ -59,6 +59,17 @@ h1 {
 
 .toggle input { accent-color: var(--accent); }
 
+.toggle + .toggle { border-top: none; }
+
+.section {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
 .stats { margin: 10px 0 0; }
 
 .stats div {

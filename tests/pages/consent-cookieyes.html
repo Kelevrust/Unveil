@@ -1,0 +1,11 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>CookieYes style banner</title></head>
+<body>
+<h1>Article</h1>
+<p>Text under a CookieYes style consent banner.</p>
+<div class="cky-consent-container" id="banner" style="position:fixed;left:0;right:0;bottom:0;background:#fff;padding:16px">
+  <p>We use cookies to improve your experience.</p>
+  <button data-cky-tag="accept-button" onclick="document.body.dataset.choice='accept'; document.getElementById('banner').remove()">Accept All</button>
+  <button data-cky-tag="reject-button" onclick="document.body.dataset.choice='reject'; document.getElementById('banner').remove()">Reject All</button>
+</div>
+</body></html>

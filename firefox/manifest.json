@@ -2,14 +2,16 @@
   "manifest_version": 2,
   "name": "Unveil",
   "version": "0.2.0",
-  "description": "Hides paywall overlays, restores scrolling and clipped article text, and blocks known paywall vendor scripts.",
+  "description": "Hides paywall overlays, declines cookie banners, sends Global Privacy Control, and blocks known paywall vendor scripts.",
   "browser_specific_settings": {
     "gecko": {
       "id": "{f9e4d419-f4df-435f-bc23-2466c032e5d1}",
       "update_url": "https://raw.githubusercontent.com/Kelevrust/Unveil/main/updates.json",
       "strict_min_version": "142.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   },
@@ -22,15 +24,37 @@
     "webRequest",
     "webRequestBlocking",
     "storage",
+    "scripting",
     "tabs"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": [
+      "compat.js",
+      "consent-bg.js",
+      "background.js"
+    ]
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["compat.js", "content.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "consent-content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "compat.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
