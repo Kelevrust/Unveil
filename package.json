@@ -6,7 +6,7 @@
     "build": "node build.mjs"
   },
   "devDependencies": {
-    "@duckduckgo/autoconsent": "17.2.0",
+    "@duckduckgo/autoconsent": "17.4.0",
     "esbuild": "0.28.2"
   }
 }
